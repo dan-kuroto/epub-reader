@@ -144,12 +144,14 @@ class Text(QLabel):
     def __init__(self, text: epub.Text) -> None:
         super().__init__(text.text)
         self.idx = 0
-        if text.header_level == epub.Text.HeaderLevel.h1:
-            self.setFont(QFont('Microsoft Yahei', 19))
-        elif text.header_level == epub.Text.HeaderLevel.h2:
-            self.setFont(QFont('Microsoft Yahei', 18))
-        elif text.header_level == epub.Text.HeaderLevel.h3:
-            self.setFont(QFont('Microsoft Yahei', 16))
+
+        font = self.font()
+        if text.header_level != epub.Text.HeaderLevel.none:
+            font.setPointSize(14 + 2 * (4 - text.header_level))
+        if text.strong:
+            font.setBold(True)
+        self.setFont(font)
+        del font
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         menu = TextContextMenu()

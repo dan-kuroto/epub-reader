@@ -4,7 +4,7 @@ from urllib.parse import unquote
 from zipfile import ZipFile
 
 from bs4 import BeautifulSoup
-from bs4.element import Tag, NavigableString, Comment
+from bs4.element import Tag, NavigableString, Comment, Stylesheet
 import xmltodict
 
 
@@ -30,6 +30,7 @@ class Text:
     def __init__(self, text: str) -> None:
         self.text = text
         self.header_level = Text.HeaderLevel.none
+        self.strong = False
 
     def __str__(self) -> str:
         return f'Text(text={self.text})'
@@ -101,7 +102,7 @@ class Epub:
                 child = child.strip()
                 if child and len(contents) > 0 and child != contents[-1]:  # 有时会重复，所以要比较
                     contents.append(Text(child))
-            elif type(child) is Comment:
+            elif type(child) in { Comment, Stylesheet }:
                 pass
             else:
                 contents.append(Text(f'不支持的类型 {type(child)} , 值为 {child}。'))
@@ -115,7 +116,10 @@ class Epub:
                 text = Text(tag.text.strip())
                 if tag.name in { 'h1', 'h2', 'h3' }:
                     text.header_level = int(tag.name[-1])
-                contents.append(text)
+                elif tag.name == 'b':
+                    text.strong = True
+                if tag.name not in { 'style', 'link' }:
+                    contents.append(text)
         return contents
 
     @staticmethod
