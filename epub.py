@@ -114,11 +114,7 @@ class Epub:
             if type(child) is Tag:
                 without_children = False
                 contents.extend(Epub._dfs(child, root))
-            elif type(child) is NavigableString:
-                child = child.strip()
-                if child and len(contents) > 0 and child != contents[-1]:  # 有时会重复，所以要比较
-                    contents.append(Text(child))
-            elif type(child) in { Comment, Stylesheet }:
+            elif type(child) in { NavigableString, Comment, Stylesheet }:
                 pass
             else:
                 contents.append(Text(f'不支持的类型 {type(child)} , 值为 {child}。'))
