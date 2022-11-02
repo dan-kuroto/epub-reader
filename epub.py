@@ -1,5 +1,5 @@
 import os
-from typing import List, Union
+from typing import Dict, List, Union
 from urllib.parse import unquote
 from zipfile import ZipFile
 
@@ -27,10 +27,26 @@ class Text:
         h2 = 0x2
         h3 = 0x3
 
+    class Align:
+        left = 0x0
+        center = 0x1
+        right = 0x2
+
     def __init__(self, text: str) -> None:
         self.text = text
         self.header_level = Text.HeaderLevel.none
         self.strong = False
+        self.align = Text.Align.left
+
+    def set_align(self, align: str):
+        if not align:
+            return
+        if align == 'left':
+            self.align = Text.Align.left
+        elif align == 'right':
+            self.align = Text.Align.right
+        elif align == 'center':
+            self.align = Text.Align.center
 
     def __str__(self) -> str:
         return f'Text(text={self.text})'
@@ -113,14 +129,39 @@ class Epub:
                     src = Epub.path_join(root, src)
                 contents.append(Image(src))
             else:
+                # Text
                 text = Text(tag.text.strip())
+                # check name
                 if tag.name in { 'h1', 'h2', 'h3' }:
                     text.header_level = int(tag.name[-1])
                 elif tag.name == 'b':
                     text.strong = True
+                # check style
+                style = Epub.parse_style(tag)
+                text.set_align(style.get('text-align', ''))
+                del style
+                # apend
                 if tag.name not in { 'style', 'link' }:
                     contents.append(text)
         return contents
+
+    @staticmethod
+    def parse_style(tag: Tag) -> Dict[str, str]:
+        style = tag.get('style')
+        if style is None:
+            return {}
+        elif type(style) is list:  # style的话应该不会是List[str]
+            print('stype为List[str]')
+            return {}
+        elif type(style) is str:
+            styles = {}
+            for kv in [_.strip().split(':') for _ in style.strip().split(';')]:
+                if len(kv) != 2:
+                    continue
+                styles[kv[0].strip()] = kv[1].strip()
+            return styles
+        else:  # 理论上不存在的情况
+            return {}
 
     @staticmethod
     def path_join(root: str, name: str) -> str:

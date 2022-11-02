@@ -152,6 +152,10 @@ class Text(QLabel):
             font.setBold(True)
         self.setFont(font)
         del font
+        if text.align == epub.Text.Align.center:
+            self.setAlignment(Qt.AlignCenter)
+        elif text.align == epub.Text.Align.right:
+            self.setAlignment(Qt.AlignRight)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         menu = TextContextMenu()
