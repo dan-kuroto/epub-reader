@@ -72,7 +72,7 @@ class Data:
                 except KeyError as ke:
                     label = Text(repr(ke))
             elif type(item) is epub.Text:
-                label = Text(item.text)
+                label = Text(item)
                 label.setWordWrap(True)
             else:  # 只可能是在`get_content`里自己加了新的类型，然而却没在这里更新相关的处理，所以是抛出异常
                 raise TypeError(f'尚未支持的类型 {type(item)}')
@@ -140,9 +140,15 @@ class TextContextMenu(QMenu):
 
 
 class Text(QLabel):
-    def __init__(self, text: str) -> None:
-        super().__init__(text)
+    def __init__(self, text: epub.Text) -> None:
+        super().__init__(text.text)
         self.idx = 0
+        if text.header_level == epub.Text.HeaderLevel.h1:
+            self.setFont(QFont('Microsoft Yahei', 19))
+        elif text.header_level == epub.Text.HeaderLevel.h2:
+            self.setFont(QFont('Microsoft Yahei', 18))
+        elif text.header_level == epub.Text.HeaderLevel.h3:
+            self.setFont(QFont('Microsoft Yahei', 16))
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         menu = TextContextMenu()
