@@ -203,12 +203,13 @@ class Speaker(QThread):
                 self.scroll_signal.emit(text.y() - 70)
             # 语音合成
             period = 1
-            if self.data.online:
-                period = await self._download_wav(text.text())
-            elif self.data.local:
-                period = await self._generate_wav(text.text())
-            else:
-                period = math.ceil(len(text.text()) / 10)
+            if text.text():
+                if self.data.online:
+                    period = await self._download_wav(text.text())
+                elif self.data.local:
+                    period = await self._generate_wav(text.text())
+                else:
+                    period = math.ceil(len(text.text()) / 10)
             # 留给阅读的时间
             await asyncio.sleep(period)
             # 看完后退出
