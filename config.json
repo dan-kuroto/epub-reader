@@ -1,0 +1,17 @@
+{
+    "method": {
+        "name": "local",
+        "注释": "语音合成的方法,若选择本地合成,需要将上面name设置为local,若选择在线合成,则设置为online"
+    },
+    "local": {
+        "MoeGoe": "D:/softwares/MoeGoe/MoeGoe.exe",
+        "model": "D:/softwares/MoeGoe/my-model/zhja_1374_epochs.pth",
+        "config": "D:/softwares/MoeGoe/my-model/zhja.json",
+        "speaker": 3,
+        "注释": "MoeGoe中填入MoeGoe.exe的完整路径,model填入模型路径,config填入配置文件路径,speaker填入朗读者ID"
+    },
+    "online": {
+        "url": "http://localhost/generate?text={text}",
+        "注释": "在url中填入接口,用{text}来代替希望语音合成的句子"
+    }
+}
