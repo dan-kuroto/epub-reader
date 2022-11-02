@@ -33,11 +33,15 @@ def clean_text_simple(text: str) -> str:
     - e.g. '假面骑士的末日到了' => '[ZH]假面骑士的末日到了[ZH]'
     - e.g. '你是世界首例感染Bugster病毒的男人啊！' => '[ZH]你是世界首例感染B，u，g，s，t，e，r，病毒的男人啊！[ZH]'
     """
+    text = text.strip()
     lst: List[str] = ['[ZH]']
     for ch in text:
-        lst.append(ch)
-        if 'a' <= ch <= 'z' or 'A' <= ch <= 'Z':
-            lst.append('，')
+        if ch in whitespace_set:
+            lst.append('。')
+        else:
+            lst.append(ch)
+            if 'a' <= ch <= 'z' or 'A' <= ch <= 'Z':
+                lst.append('，')
     lst.append('[ZH]')
     return ''.join(lst)
 
@@ -49,6 +53,7 @@ def clean_text(text: str) -> str:
     - e.g. '假面骑士的末日到了' => '[ZH]假面骑士的末日到了[ZH]'
     - e.g. '你是世界首例感染Bugster病毒的男人啊！' => '[ZH]你是世界首例感染[ZH][EN]Bugster[EN][ZH]病毒的男人啊！[ZH]'
     """
+    text = text.strip()
     lst: List[str] = []
     en_mode = False
     for ch in text:
@@ -76,7 +81,7 @@ def clean_text(text: str) -> str:
                     ch = '。'
                 lst.append(ch)
             else:  # 保持英文模式
-                if ch in whitespace_set:
+                if ch != ' ' and ch in whitespace_set:
                     ch = '. '
                 lst.append(ch)
     if lst:
