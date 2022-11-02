@@ -32,8 +32,9 @@ class Text:
         center = 0x1
         right = 0x2
 
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, source: type = Tag) -> None:
         self.text = text
+        self.source = source  # 源头是Tag还是NavigableString，主要用于查重
         self.header_level = Text.HeaderLevel.none
         self.strong = False
         self.align = Text.Align.left
@@ -91,7 +92,19 @@ class Epub:
             return [Text(f'错误: 在epub文件中找不到 {path} !')]
         with ZipFile(self.epub_path) as zip:
             body = BeautifulSoup(zip.read(path).decode(), features='lxml').find('body')
-        return Epub._dfs(body, os.path.dirname(path))
+        contents: List[Union[Text, Image]] = []
+        for i, item in enumerate(Epub._dfs(body, os.path.dirname(path))):
+            if i == 0:
+                contents.append(item)
+            else:
+                if type(contents[-1]) is Text and type(item) is Text and contents[-1].source is not item.source and contents[-1].text == item.text:
+                    if contents[-1].source is NavigableString:
+                        contents[-1] = item
+                    elif item.source is NavigableString:
+                        pass
+                else:
+                    contents.append(item)
+        return contents
 
     def read(self, src: str) -> bytes:
         """
@@ -105,7 +118,8 @@ class Epub:
     @staticmethod
     def _dfs(tag: Tag, root: str) -> List[Union[Text, Image]]:
         """
-        针对html/xhtml等文件中的树状结构，用深搜的方式顺序得到所有文本或图片内容
+        针对html/xhtml等文件中的树状结构，用深搜的方式顺序得到所有文本或图片内容。\n
+        由于NavigableString和Tag内容经常会重复，需要对得到的内容进行查重操作，本来可以在这个方法内部实现的，但考虑到效率还是在外面一次遍历搞定吧。
         :param root: 就是所读文件在epub文件内所处的目录，因为图片的src是基于该文件的相对路径，所以需要提供
         """
         contents: List[Union[Text, Image]] = []
@@ -114,7 +128,11 @@ class Epub:
             if type(child) is Tag:
                 without_children = False
                 contents.extend(Epub._dfs(child, root))
-            elif type(child) in { NavigableString, Comment, Stylesheet }:
+            elif type(child) is NavigableString:
+                child = child.strip()
+                if child:
+                    contents.append(Text(child, source=NavigableString))
+            elif type(child) in { Comment, Stylesheet }:
                 pass
             else:
                 contents.append(Text(f'不支持的类型 {type(child)} , 值为 {child}。'))
