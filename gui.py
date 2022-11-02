@@ -54,7 +54,8 @@ class Data:
             return
 
         menu_btns = menu.get_btns()
-        menu_btns[self.nav_id].setEnabled(True)
+        if self.nav_id < len(menu_btns):
+            menu_btns[self.nav_id].setEnabled(True)
         self._nav_id = nav_id
         menu_btns[self.nav_id].setEnabled(False)
 
