@@ -150,7 +150,7 @@ class Epub:
                 src = tag.get('src')
                 if not src.lower().startswith('http'):  # 就NM离谱，怎么会有网络图片的啦
                     src = Epub.path_join(root, src)
-                contents.append(Image(src))
+                    contents.append(Image(src))
             else:
                 # Text
                 text = Text(tag.text.strip())
