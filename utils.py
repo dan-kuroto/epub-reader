@@ -1,7 +1,9 @@
+import os
 from string import printable, whitespace
 from typing import List, Type, Optional
 
 from PySide2.QtWidgets import QWidget, QScrollArea, QFormLayout
+from PySide2.QtGui import QDragEnterEvent, QDropEvent
 from PySide2.QtCore import QUrl
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
 
@@ -118,6 +120,32 @@ class MediaPlayer(QMediaPlayer):
     def setMedia(self, path: str) -> None:
         """很神奇,如果文件名相同的话它似乎就不会重新加载,所以一定要随机名称"""
         return super().setMedia(QMediaContent(QUrl.fromLocalFile(path)))
+
+
+class FileDragable(QWidget):
+    """可拖入文件的QWidget"""
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        event.acceptProposedAction()  # 不这样dropEvent就无法触发
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        for url in event.mimeData().urls():
+            url: QUrl
+            path = url.toLocalFile()
+            if self.check_dragged_file_path(path):
+                self.after_file_dragged(path)
+                return  # 只管一个
+
+    def check_dragged_file_path(self, path: str) -> bool:
+        """检查拖入文件路径"""
+        return os.path.isfile(path)
+
+    def after_file_dragged(self, path: str):
+        """文件拖入后执行的操作"""
+        print(path)
 
 
 if __name__ == '__main__':

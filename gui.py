@@ -3,12 +3,12 @@ import sys
 from typing import List, Optional
 
 from PySide2.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QSplitter, QLineEdit, QAction, QMenu
-from PySide2.QtGui import QDragEnterEvent, QDropEvent, QFont, QPixmap, QImage, QKeyEvent, QContextMenuEvent, QCloseEvent
-from PySide2.QtCore import QUrl, Qt
+from PySide2.QtGui import QFont, QPixmap, QImage, QKeyEvent, QContextMenuEvent, QCloseEvent
+from PySide2.QtCore import Qt
 from qtmodern.styles import dark as dark_style, light as light_style
 
 import epub
-from utils import singleton, ScrollArea
+from utils import FileDragable, singleton, ScrollArea
 from speak import Speaker
 
 
@@ -235,21 +235,9 @@ class FileInput(QLineEdit):
         else:
             self.setText(Data().path)
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        event.acceptProposedAction()  # 不这样dropEvent就无法触发
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        for url in event.mimeData().urls():
-            url: QUrl
-            path = url.toLocalFile()
-            if os.path.isfile(path) and path.lower().endswith('.epub'):
-                self.setText(path)
-                Data().path = path
-                return  # 只管一个
-
 
 @singleton
-class MainWindow(QWidget):
+class MainWindow(FileDragable):
     """主窗口"""
     def __init__(self):
         super().__init__()
@@ -271,6 +259,13 @@ class MainWindow(QWidget):
         body.setSizes([200, 400])
         layout.addWidget(body)
         self.setLayout(layout)
+
+    def check_dragged_file_path(self, path: str) -> bool:
+        return os.path.isfile(path) and path.lower().endswith('.epub')
+
+    def after_file_dragged(self, path: str):
+        FileInput().setText(path)
+        Data().path = path
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         ctrl: bool = event.modifiers() & Qt.ControlModifier != 0
