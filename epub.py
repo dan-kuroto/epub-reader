@@ -164,6 +164,8 @@ class Epub:
                 style = Epub.parse_style(tag)
                 text.align = style.get('text-align', '')
                 text.color = style.get('color', '')
+                if style.get('font-weight', '') == 'bold':
+                    text.strong = True
                 del style
                 # apend
                 if tag.name not in { 'style', 'link' }:
