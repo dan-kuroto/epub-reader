@@ -16,10 +16,10 @@ from speak import Speaker
 class Data:
     """单例的数据类"""
     def __init__(self):
-        self._styles = [dark_style, light_style]
+        self._styles = [light_style, dark_style]
+        self._style_id = 0
         self._path = ''
         self._nav_id = 0
-        self._style_id = 0
 
     @property
     def path(self) -> str:
@@ -248,6 +248,7 @@ class MainWindow(FileDragable):
         self.epub: Optional[epub.Epub] = None
 
         self.file_input = FileInput(self)
+        self.file_input.hide()
         self.menu = Menu(self)
         self.epub_content = EpubContent(self)
 
@@ -264,13 +265,15 @@ class MainWindow(FileDragable):
         return os.path.isfile(path) and path.lower().endswith('.epub')
 
     def after_file_dragged(self, path: str):
-        FileInput().setText(path)
+        self.file_input.setText(path)
         Data().path = path
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         ctrl: bool = event.modifiers() & Qt.ControlModifier != 0
         if ctrl and event.key() == Qt.Key_S:
             Data().style_id += 1
+        elif ctrl and event.key() == Qt.Key_H:
+            self.file_input.setVisible(not self.file_input.isVisible())
         elif ctrl and event.key() == Qt.Key_PageUp:
             Data().nav_id -= 1
         elif ctrl and event.key() == Qt.Key_PageDown:
