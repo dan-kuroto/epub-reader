@@ -38,6 +38,7 @@ class Text:
         self.header_level = Text.HeaderLevel.none
         self.strong = False
         self._align = Text.Align.left
+        self.color = ''
 
     @property
     def align(self) -> int:
@@ -162,6 +163,7 @@ class Epub:
                 # check style
                 style = Epub.parse_style(tag)
                 text.align = style.get('text-align', '')
+                text.color = style.get('color', '')
                 del style
                 # apend
                 if tag.name not in { 'style', 'link' }:
