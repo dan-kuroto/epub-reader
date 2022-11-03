@@ -37,17 +37,26 @@ class Text:
         self.source = source  # 源头是Tag还是NavigableString，主要用于查重
         self.header_level = Text.HeaderLevel.none
         self.strong = False
-        self.align = Text.Align.left
+        self._align = Text.Align.left
 
-    def set_align(self, align: str):
-        if not align:
-            return
-        if align == 'left':
-            self.align = Text.Align.left
-        elif align == 'right':
-            self.align = Text.Align.right
-        elif align == 'center':
-            self.align = Text.Align.center
+    @property
+    def align(self) -> int:
+        return self._align
+
+    @align.setter
+    def align(self, align: Union[int, str]):
+        if type(align) is int:
+            if Text.Align.left <= align <= Text.Align.right:
+                self._align = align
+        elif type(align) is str:
+            if not align:
+                return
+            elif align == 'center':
+                self.align = Text.Align.center
+            elif align == 'right':
+                self.align = Text.Align.right
+            elif align == 'left':
+                self.align = Text.Align.left
 
     def __str__(self) -> str:
         return f'Text(text={self.text})'
@@ -152,7 +161,7 @@ class Epub:
                     text.strong = True
                 # check style
                 style = Epub.parse_style(tag)
-                text.set_align(style.get('text-align', ''))
+                text.align = style.get('text-align', '')
                 del style
                 # apend
                 if tag.name not in { 'style', 'link' }:
