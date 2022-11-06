@@ -291,7 +291,7 @@ if __name__ == '__main__':
     os.chdir(os.path.split(os.path.realpath(__file__))[0])
 
     app = QApplication(sys.argv)
-    dark_style(app)
+    Data().style_id = 0
     app.setFont(QFont('Microsoft Yahei', 14))
     MainWindow().show()
     sys.exit(app.exec_())
