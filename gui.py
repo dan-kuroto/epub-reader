@@ -2,7 +2,7 @@ import os
 import sys
 from typing import List, Optional
 
-from PySide2.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QSplitter, QLineEdit, QAction, QMenu
+from PySide2.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QSplitter, QLineEdit, QAction, QMenu, QFileDialog
 from PySide2.QtGui import QFont, QPixmap, QImage, QKeyEvent, QContextMenuEvent, QCloseEvent
 from PySide2.QtCore import Qt
 from qtmodern.styles import dark as dark_style, light as light_style
@@ -65,16 +65,11 @@ class Data:
             if type(item) is epub.Image:
                 label = None
                 try:
-                    label = QLabel()
-                    pixmap = QPixmap.fromImage(QImage.fromData(main.epub.read(item.src)))
-                    if pixmap.width() > max_width:
-                        pixmap = pixmap.scaledToWidth(max_width, Qt.SmoothTransformation)
-                    label.setPixmap(pixmap)
+                    label = Image(item, max_width)
                 except KeyError as ke:
                     label = Text(epub.Text(repr(ke)))
             elif type(item) is epub.Text:
                 label = Text(item)
-                label.setWordWrap(True)
             else:  # 只可能是在`get_content`里自己加了新的类型，然而却没在这里更新相关的处理，所以是抛出异常
                 raise TypeError(f'尚未支持的类型 {type(item)}')
             content.addWidget(label)
@@ -103,6 +98,24 @@ class Data:
 
 
 @singleton
+class ImageContextMenu(QMenu):
+    def __init__(self):
+        super().__init__()
+        self.image_id = 0
+        self.save_action = QAction('保存图片')
+        self.save_action.triggered.connect(self.save_image)
+        self.addAction(self.save_action)
+
+    def save_image(self):
+        src = EpubContent().images[self.image_id].src
+        path, _ = QFileDialog.getSaveFileName(None, '保存图片', os.path.basename(src), f'图片文件 (*{os.path.splitext(src)[-1]})')
+        if not path:
+            return
+        with open(path, 'wb') as f:
+            f.write(MainWindow().epub.read(src))
+
+
+@singleton
 class TextContextMenu(QMenu):
     def __init__(self):
         super().__init__()
@@ -122,7 +135,7 @@ class TextContextMenu(QMenu):
             speaker.scroll_signal.connect(lambda height: EpubContent().verticalScrollBar().setValue(height))
         self.speak_loaded = True
 
-        speaker.init(self.text_id, EpubContent().get_texts())
+        speaker.init(self.text_id, EpubContent().texts)
         speaker.start()
 
     def speak_stop(self):
@@ -140,10 +153,33 @@ class TextContextMenu(QMenu):
         return super().show()
 
 
+class Image(QLabel):
+    def __init__(self, image: epub.Image, max_width: int):
+        super().__init__()
+        self.idx = 0
+        self.src = image.src
+        self.init_image(max_width)
+
+    def init_image(self, max_width: int):
+        """初始化图片，主要是为了以后能随着窗口大小的变化而缩放图片"""
+        main = MainWindow()
+        pixmap = QPixmap.fromImage(QImage.fromData(main.epub.read(self.src)))
+        if pixmap.width() > max_width:
+            pixmap = pixmap.scaledToWidth(max_width, Qt.SmoothTransformation)
+        self.setPixmap(pixmap)
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        menu = ImageContextMenu()
+        menu.image_id = self.idx
+        menu.move(event.globalPos())
+        menu.show()
+
+
 class Text(QLabel):
     def __init__(self, text: epub.Text) -> None:
         super().__init__(text.text)
         self.idx = 0
+        self.setWordWrap(True)
 
         font = self.font()
         if text.header_level != epub.Text.HeaderLevel.none:
@@ -172,20 +208,21 @@ class EpubContent(ScrollArea):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.texts: List[Text] = []
+        self.images: List[Image] = []
 
     def addWidget(self, widget: QLabel):
         if type(widget) is Text:
             widget.idx = len(self.texts)
             self.texts.append(widget)
+        elif type(widget) is Image:
+            widget.idx = len(self.images)
+            self.images.append(widget)
         return super().addWidget(widget)
 
     def clearWidgets(self):
         self.texts = []
+        self.images = []
         return super().clearWidgets()
-
-    def get_texts(self) -> List[Text]:
-        """获取所有text"""
-        return self.texts
 
 
 class MenuButton(QPushButton):
