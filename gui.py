@@ -145,8 +145,10 @@ class TextContextMenu(QMenu):
     def show(self) -> None:
         if self.speak_loaded:
             if Speaker().stopped():
+                self.speak_start_action.setEnabled(True)
                 self.speak_stop_action.setEnabled(False)
             else:
+                self.speak_start_action.setEnabled(False)
                 self.speak_stop_action.setEnabled(True)
         else:
             self.speak_stop_action.setEnabled(False)

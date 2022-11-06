@@ -49,10 +49,8 @@ class Speaker(QThread):
         self.texts: List[QLabel] = []
         self.text_id = 0
         self._looping = True
-        self.media_duration = 1.
         self.tmp_path = os.path.abspath('tmp')
         self.player = MediaPlayer()
-        self.player.durationChanged.connect(self.media_loaded_handler)
         self.event_loop: Optional[asyncio.AbstractEventLoop] = None
         self.process: Optional[asyncio.subprocess.Process] = None
         self.err_msg = '与MoeGoe的交互出现了不认识的输出，请确认MoeGoe版本或是否报错'
@@ -60,9 +58,6 @@ class Speaker(QThread):
     def generate_output_path(self, text: str):
         file_name = md5((str(time()) + text).encode()).hexdigest() + '.wav'
         return os.path.abspath(os.path.join(self.tmp_path, file_name))
-
-    def media_loaded_handler(self):
-        self.media_duration = math.ceil(0.5 + self.player.duration() / 1000)
 
     def stop(self):
         self._looping = False
@@ -76,7 +71,7 @@ class Speaker(QThread):
         self._looping = True
 
     async def _download_wav(self, text: str):
-        """从接口下载音频, 播放, 并返回时长 (获取时长依赖qt相关类所以必须播放)"""
+        """从接口下载音频, 播放"""
         url = self.data.url(text)
         path = self.generate_output_path(text)
         if os.path.exists(self.tmp_path):
@@ -94,14 +89,17 @@ class Speaker(QThread):
         return await self._play(path)
 
     async def _generate_wav(self, text: str):
-        """本地语音生成, 播放, 并返回时长 (获取时长依赖qt相关类所以必须播放)"""
+        """本地语音生成, 播放"""
         # prepare
         path = self.generate_output_path(text)
         if os.path.exists(self.tmp_path):
             for name in os.listdir(self.tmp_path):
                 name = os.path.join(self.tmp_path, name)
                 if os.path.isfile(name) and name.endswith('.wav'):
-                    os.remove(name)
+                    try:
+                        os.remove(name)
+                    except:
+                        pass  # 有时候会出现文件被占用的情况，无所谓，下次会删
         else:
             os.mkdir(self.tmp_path)
         text = clean_text_simple(text)
@@ -189,29 +187,30 @@ class Speaker(QThread):
         return await self._play(path)
 
     async def _play(self, path: str):
-        """播放，并获取时长"""
+        """播放"""
+        while self.player.state() == MediaPlayer.PlayingState and self._looping:
+            await asyncio.sleep(0.1)  # 等待上一个播放结束
+        if not self._looping:
+            return
         self.player.setMedia(path)
         self.player.play()
-        await asyncio.sleep(0.2)  # 等一下durationChanged，暂时想不到更好的办法
-        return self.media_duration
 
     async def _main(self):
         while self._looping:
             # 移动
             text = self.texts[self.text_id]
-            if text.y() >= 70:
-                self.scroll_signal.emit(text.y() - 70)
+            last_text = self.texts[self.text_id - 1 if self.text_id > 0 else 0]
+            if last_text.y() >= 70:
+                self.scroll_signal.emit(last_text.y() - 70)
+            del last_text
             # 语音合成
-            period = 1
             if text.text():
                 if self.data.online:
-                    period = await self._download_wav(text.text())
+                    await self._download_wav(text.text())
                 elif self.data.local:
-                    period = await self._generate_wav(text.text())
+                    await self._generate_wav(text.text())
                 else:
-                    period = math.ceil(len(text.text()) / 10)
-            # 留给阅读的时间
-            await asyncio.sleep(period)
+                    raise RuntimeError('未知的语音合成方式')
             # 看完后退出
             self.text_id += 1
             if self.text_id >= len(self.texts):
