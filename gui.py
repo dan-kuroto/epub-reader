@@ -71,7 +71,7 @@ class Data:
                         pixmap = pixmap.scaledToWidth(max_width, Qt.SmoothTransformation)
                     label.setPixmap(pixmap)
                 except KeyError as ke:
-                    label = Text(repr(ke))
+                    label = Text(epub.Text(repr(ke)))
             elif type(item) is epub.Text:
                 label = Text(item)
                 label.setWordWrap(True)
