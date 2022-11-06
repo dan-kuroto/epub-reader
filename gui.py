@@ -270,13 +270,16 @@ class MainWindow(FileDragable):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         ctrl: bool = event.modifiers() & Qt.ControlModifier != 0
-        if ctrl and event.key() == Qt.Key_S:
+        key = event.key()
+        if ctrl and key == Qt.Key_S:
             Data().style_id += 1
-        elif ctrl and event.key() == Qt.Key_H:
+        elif ctrl and key == Qt.Key_I:
             self.file_input.setVisible(not self.file_input.isVisible())
-        elif ctrl and event.key() == Qt.Key_PageUp:
+        elif ctrl and key == Qt.Key_N:
+            self.menu.setVisible(not self.menu.isVisible())
+        elif ctrl and key == Qt.Key_PageUp:
             Data().nav_id -= 1
-        elif ctrl and event.key() == Qt.Key_PageDown:
+        elif ctrl and key == Qt.Key_PageDown:
             Data().nav_id += 1
 
     def closeEvent(self, event: QCloseEvent) -> None:

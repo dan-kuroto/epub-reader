@@ -6,7 +6,8 @@
 
 ## 快捷键
 - <kbd>Ctrl</kbd> + <kbd>S</kbd>: 切换风格 (S: Style)
-- <kbd>Ctrl</kbd> + <kbd>H</kbd>: 显示/隐藏文件输入框 (H: Hide)
+- <kbd>Ctrl</kbd> + <kbd>I</kbd>: 显示/隐藏文件输入框 (I: Input)
+- <kbd>Ctrl</kbd> + <kbd>N</kbd>: 显示/隐藏侧边导航栏 (N: Navigator)
 - <kbd>Ctrl</kbd> + <kbd>PgUp</kbd>: 上一章
 - <kbd>Ctrl</kbd> + <kbd>PgDn</kbd>: 下一章
 
