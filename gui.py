@@ -3,8 +3,8 @@ import sys
 from typing import List, Optional
 
 from PySide2.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QSplitter, QLineEdit, QAction, QMenu, QFileDialog
-from PySide2.QtGui import QFont, QPixmap, QImage, QKeyEvent, QContextMenuEvent, QCloseEvent
-from PySide2.QtCore import Qt
+from PySide2.QtGui import QFont, QPixmap, QImage, QKeyEvent, QContextMenuEvent, QCloseEvent, QResizeEvent
+from PySide2.QtCore import Qt, QTimer
 from qtmodern.styles import dark as dark_style, light as light_style
 
 import epub
@@ -59,7 +59,7 @@ class Data:
         self._nav_id = nav_id
         menu_btns[self.nav_id].setEnabled(False)
 
-        max_width = app.primaryScreen().availableSize().width() - 400
+        max_width = content.width() - 50
         content.clearWidgets()
         for item in main.epub.get_content(nav_id):
             if type(item) is epub.Image:
@@ -209,6 +209,7 @@ class EpubContent(ScrollArea):
         super().__init__(parent)
         self.texts: List[Text] = []
         self.images: List[Image] = []
+        self._resize_finished = False
 
     def addWidget(self, widget: QLabel):
         if type(widget) is Text:
@@ -223,6 +224,15 @@ class EpubContent(ScrollArea):
         self.texts = []
         self.images = []
         return super().clearWidgets()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        if not self._resize_finished:
+            self._resize_finished = True
+            max_width = event.size().width() - 50
+            for image in self.images:
+                image.init_image(max_width)
+            QTimer.singleShot(100, lambda: setattr(self, '_resize_finished', False))  # 为了防止resizeEvent被多次触发，这里延迟一下
+        return super().resizeEvent(event)
 
 
 class MenuButton(QPushButton):
