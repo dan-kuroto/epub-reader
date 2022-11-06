@@ -231,6 +231,8 @@ class EpubContent(ScrollArea):
             max_width = event.size().width() - 50
             for image in self.images:
                 image.init_image(max_width)
+            for text in self.texts:
+                text.setFixedWidth(max_width)  # 裁剪掉无法换行的长串英文字符，反正通常都是一个超长的破折号或者等号或者链接之类的
             QTimer.singleShot(100, lambda: setattr(self, '_resize_finished', False))  # 为了防止resizeEvent被多次触发，这里延迟一下
         return super().resizeEvent(event)
 
