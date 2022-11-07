@@ -187,22 +187,20 @@ class Speaker(QThread):
         return await self._play(path)
 
     async def _play(self, path: str):
-        """播放"""
+        """播放, 并移动到正在播放的句子的位置"""
         while self.player.state() == MediaPlayer.PlayingState and self._looping:
             await asyncio.sleep(0.1)  # 等待上一个播放结束
         if not self._looping:
             return
+        # 移动
+        self.scroll_signal.emit(self.texts[self.text_id].y() - 50)
+        # 播放
         self.player.setMedia(path)
         self.player.play()
 
     async def _main(self):
         while self._looping:
-            # 移动
             text = self.texts[self.text_id]
-            last_text = self.texts[self.text_id - 1 if self.text_id > 0 else 0]
-            if last_text.y() >= 70:
-                self.scroll_signal.emit(last_text.y() - 70)
-            del last_text
             # 语音合成
             if text.text():
                 if self.data.online:
