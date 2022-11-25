@@ -7,7 +7,7 @@
         "MoeGoe": "D:/softwares/MoeGoe/MoeGoe.exe",
         "model": "D:/softwares/MoeGoe/my-model/zhja_1374_epochs.pth",
         "config": "D:/softwares/MoeGoe/my-model/zhja.json",
-        "speaker": 3,
+        "speaker": 0,
         "注释": "MoeGoe中填入MoeGoe.exe的完整路径,model填入模型路径,config填入配置文件路径,speaker填入朗读者ID"
     },
     "online": {

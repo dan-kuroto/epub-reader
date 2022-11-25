@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Set, Optional, Generator
 from urllib.parse import unquote
 from zipfile import ZipFile
 
@@ -9,11 +9,15 @@ import xmltodict
 
 
 class Nav:
-    def __init__(self, tag: Tag, index: int) -> None:
-        """tag: bs4.element.Tag"""
+    def __init__(self, tag: Optional[Tag] = None, index: int = 0, text: str = '', src: str = '') -> None:
+        """tag: bs4.element.Tag, if given, `text` and `src` will be ignored"""
         self.index = index
-        self.text: str = tag.find('navlabel').text.strip()
-        self.src: str = tag.find('content').get('src')
+        if tag is not None:
+            self.text: str = tag.find('navlabel').text.strip()
+            self.src: str = tag.find('content').get('src')
+        else:
+            self.text = text
+            self.src = src
 
     def __str__(self) -> str:
         return f'[{self.text}]({self.src})'
@@ -72,31 +76,37 @@ class Image:
 
 
 class Epub:
+    """封装了epub文件的一些操作, 目前已追加txt模式"""
     def __init__(self, path: str):
         # 步骤
         # 1. 打开 "META-INF/container.xml", 找到 ['container']['rootfiles']['rootfile']['@full-path'], 应该是个opf文件
         # 2. 打开 .opf 文件, 找 ['package']['manifest']['item'] 应该是个列表, 找到 id=ncx 的 href, 应该是个ncx
-        with ZipFile(path) as zip:
-            name_set = set(zip.namelist())
-            opf_path = xmltodict.parse(zip.read('META-INF/container.xml').decode())['container']['rootfiles']['rootfile']['@full-path']
-            root_path: str = os.path.dirname(opf_path)
-            ncx_path = ''
-            for item in xmltodict.parse(zip.read(opf_path).decode())['package']['manifest']['item']:
-                if item['@id'] == 'ncx':
-                    ncx_path = Epub.path_join(root_path, item['@href'])
-                    break
-            ncx = BeautifulSoup(zip.read(ncx_path).decode(), features='lxml').find('ncx')
-        doc_title = ncx.find('doctitle')
-        doc_author = ncx.find('docauthor')
+        self.is_txt = path.lower().endswith('.txt')
         self.epub_path = path
-        self.root_path = root_path
-        self.name_set = name_set
-        self.title: str = doc_title.text.strip() if doc_title is not None else ''
-        self.author: str = doc_author.text.strip() if doc_author is not None else ''
-        self.navs: List[Nav] = [Nav(navpoint, i) for i, navpoint in enumerate(ncx.find('navmap').find_all('navpoint'))]
+        if not self.is_txt:
+            with ZipFile(path) as zip:
+                name_set = set(zip.namelist())
+                opf_path = xmltodict.parse(zip.read('META-INF/container.xml').decode())['container']['rootfiles']['rootfile']['@full-path']
+                root_path: str = os.path.dirname(opf_path)
+                ncx_path = ''
+                for item in xmltodict.parse(zip.read(opf_path).decode())['package']['manifest']['item']:
+                    if item['@id'] == 'ncx':
+                        ncx_path = Epub.path_join(root_path, item['@href'])
+                        break
+                ncx = BeautifulSoup(zip.read(ncx_path).decode(), features='lxml').find('ncx')
+            self.root_path = root_path
+            self.name_set: Set[str] = name_set
+            self.navs: List[Nav] = [Nav(navpoint, i) for i, navpoint in enumerate(ncx.find('navmap').find_all('navpoint'))]
+        else:
+            self.root_path = ''  # txt模式下没有root_path(epub文件内根路径)
+            self.name_set: Set[str] = set()  # txt模式下没有name_set(epub文件内文件名集合)
+            self.navs: List[Nav] = [Nav(None, 0, '1')]  # txt模式下只有一个Nav
 
     def get_content(self, idx: int) -> List[Union[Text, Image]]:
         """根据navs的编号获取对应的所有内容"""
+        if self.is_txt:
+            assert idx == 0
+            return list(self._read_txt(self.epub_path))
         path = Epub.path_join(self.root_path, self.navs[idx].src)
         if path not in self.name_set:
             return [Text(f'错误: 在epub文件中找不到 {path} !')]
@@ -124,6 +134,15 @@ class Epub:
             raise KeyError(f'在epub文件中找不到 {src} !')
         with ZipFile(self.epub_path) as zip:
             return zip.read(src)
+
+    @staticmethod
+    def _read_txt(path: str) -> Generator[Text, None, None]:
+        """读取txt文件, 生成Text (用yield是为了减少append的使用)"""
+        with open(path, 'r', encoding='utf-8') as file:
+            for line in file:
+                line = line.strip()
+                if line:
+                    yield Text(line)
 
     @staticmethod
     def _dfs(tag: Tag, root: str) -> List[Union[Text, Image]]:
@@ -207,4 +226,4 @@ class Epub:
         return unquote(s)
 
     def __str__(self) -> str:
-        return f'Epub(root_path={self.root_path}, title={self.title}, author={self.author})'
+        return f'Epub(root_path={self.root_path})'

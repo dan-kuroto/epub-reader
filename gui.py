@@ -74,7 +74,7 @@ class Data:
                 raise TypeError(f'尚未支持的类型 {type(item)}')
             content.addWidget(label)
 
-        main.setWindowTitle(f'{main.epub.navs[nav_id].text} - {os.path.basename(self.path)[:-5]} - EpubReader')
+        main.setWindowTitle(f'{main.epub.navs[nav_id].text} - {os.path.splitext(os.path.basename(self.path))[0]} - EpubReader')
 
     @property
     def styles(self):
@@ -281,7 +281,8 @@ class FileInput(QLineEdit):
 
     def enter_handler(self):
         path = self.text()
-        if os.path.exists(path) and os.path.isfile(path) and path.lower().endswith('.epub'):
+        if os.path.exists(path) and os.path.isfile(path)\
+            and (path.lower().endswith('.epub') or path.lower().endswith('.txt')):
             Data().path = path
         else:
             self.setText(Data().path)
@@ -313,7 +314,8 @@ class MainWindow(FileDragable):
         self.setLayout(layout)
 
     def check_dragged_file_path(self, path: str) -> bool:
-        return os.path.isfile(path) and path.lower().endswith('.epub')
+        return os.path.isfile(path)\
+            and (path.lower().endswith('.epub') or path.lower().endswith('.txt'))
 
     def after_file_dragged(self, path: str):
         self.file_input.setText(path)
