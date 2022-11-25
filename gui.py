@@ -61,7 +61,7 @@ class Data:
 
         max_width = content.width() - 50
         content.clearWidgets()
-        for item in main.epub.get_content(nav_id):
+        for idx, item in enumerate(main.epub.get_content(nav_id)):
             if type(item) is epub.Image:
                 label = None
                 try:
@@ -73,6 +73,8 @@ class Data:
             else:  # 只可能是在`get_content`里自己加了新的类型，然而却没在这里更新相关的处理，所以是抛出异常
                 raise TypeError(f'尚未支持的类型 {type(item)}')
             content.addWidget(label)
+            if idx % 150 == 0 and idx != 0:
+                QApplication.instance().processEvents()
 
         main.setWindowTitle(f'{main.epub.navs[nav_id].text} - {os.path.splitext(os.path.basename(self.path))[0]} - EpubReader')
 
