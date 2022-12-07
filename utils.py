@@ -1,6 +1,6 @@
 import os
 from string import printable, whitespace
-from typing import List, Type, Optional
+from typing import List, Type, Optional, Generator
 
 from PySide2.QtWidgets import QWidget, QScrollArea, QFormLayout
 from PySide2.QtGui import QDragEnterEvent, QDropEvent
@@ -8,8 +8,9 @@ from PySide2.QtCore import QUrl
 from PySide2.QtMultimedia import QMediaPlayer, QMediaContent
 
 
-whitespace_set = set(list(whitespace))
-printable_set = set(list(printable))
+whitespace_set = set(whitespace)
+printable_set = set(printable)
+punctuation_set = set(',.:!?[]"\'，。：！？—「」『』《》【】〖〗〝〞‘’“”')
 
 
 def singleton(cls: Type):
@@ -89,6 +90,27 @@ def clean_text(text: str) -> str:
     if lst:
         lst.append('[EN]' if en_mode else '[ZH]')
     return ''.join(lst)
+
+
+def split_long_text(text: str, max_len: int = 25) -> Generator[str, None, None]:
+    """
+    若文本长度超过最大长度，则从这里开始往后寻找最近的标点符号(比如句号)，进行分割
+    """
+    length = len(text)
+    if length <= max_len:  # 不需要分割
+        yield text
+    else:
+        start = 0
+        while start < length:
+            end = start + max_len
+            if end >= length:  # 分完了
+                yield text[start:]
+                break
+            else:  # 还没分完
+                while end < length and text[end - 1] not in punctuation_set:
+                    end += 1  # 向后找最近的标点符号, 但是不能超过总长度
+                yield text[start: end]  # 分割
+                start = end
 
 
 class ScrollArea(QScrollArea):

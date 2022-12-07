@@ -2,7 +2,6 @@ import asyncio
 import aiohttp
 from hashlib import md5
 import json
-import math
 import os
 from time import time
 from typing import List, Optional
@@ -10,7 +9,7 @@ from typing import List, Optional
 from PySide2.QtWidgets import QLabel
 from PySide2.QtCore import QThread, Signal
 
-from utils import MediaPlayer, clean_text_simple, singleton
+from utils import MediaPlayer, clean_text_simple, singleton, split_long_text
 
 
 @singleton
@@ -102,7 +101,6 @@ class Speaker(QThread):
                         pass  # 有时候会出现文件被占用的情况，无所谓，下次会删
         else:
             os.mkdir(self.tmp_path)
-        text = clean_text_simple(text)
         # MoeGoe相关
         if self.process is None:  # 初始化, 输入model和config
             print('正在创建与MoeGoe交互的子程序...')
@@ -200,13 +198,17 @@ class Speaker(QThread):
 
     async def _main(self):
         while self._looping:
-            text = self.texts[self.text_id]
+            text = self.texts[self.text_id].text()
             # 语音合成
-            if text.text():
+            for short_text in split_long_text(text):  # 长文本分割, 不然太慢
+                if not self._looping:  # 虽然不影响外层循环, 但外层也马上会结束, 并且结束前不会出错所以姑且用break
+                    break
                 if self.data.online:
-                    await self._download_wav(text.text())
+                    await self._download_wav(short_text)
                 elif self.data.local:
-                    await self._generate_wav(text.text())
+                    short_text = short_text.strip()
+                    if short_text:
+                        await self._generate_wav(clean_text_simple(short_text))
                 else:
                     raise RuntimeError('未知的语音合成方式')
             # 看完后退出
